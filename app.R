@@ -101,7 +101,7 @@ sidebar <- dashboardSidebar(
          </center>"),
     # HTML("<center> <a href='https://github.com/Heuclin'> <img src='github_logo.png', width='80', height='60', alt='github'> </a> </center>")
     tag_bas
-    ),
+  ),
   width = 150,
   collapsed=FALSE)
 
@@ -516,8 +516,13 @@ server <- function(input, output) {
     if((input$selDep != "D0") & (input$selCom %in% c("", "C0"))) {
       output$boxplot <- renderPlot({
         
-        load(paste0("data/DVF/summary_par_departement/", input$selDep, "/dvf_sum_dep_annee.Rdata"))
-        data_sum_dep_annee <- data_sum_dep_annee %>% filter(type_local==input$Type_local)
+        db_dep <- dbConnect(SQLite(), dbname = paste0("data/DVF/summary_par_departement/", input$selDep, "/summary_dep_", input$selDep, ".sqlite"))
+        # dbListTables(db_dep)
+        type_local_tmp <- input$Type_local
+        data_sum_dep_annee <- tbl(db_dep, "dvf_sum_dep_annee") %>% filter(type_local==type_local_tmp) %>% as_tibble()
+        dbDisconnect(db_dep)
+        
+        
         nb_obs_annee <- data_sum_dep_annee$n
         mean <- data_sum_dep_annee$mean
         data_sum_dep_annee$annee_order <- as.numeric(factor(data_sum_dep_annee$annee)) #, labels = order(unique(data_sum_dep_annee$annee)))
@@ -570,8 +575,8 @@ server <- function(input, output) {
       
       # chargement et affichage des cadastres par commune
       # if(! id_commune %in% c("69123", "13055", "75056")){
-        # browser()
-        cadastre_geojson <- read_sf(paste0("https://cadastre.data.gouv.fr/bundler/cadastre-etalab/communes/", id_commune, "/geojson/sections"))
+      # browser()
+      cadastre_geojson <- read_sf(paste0("https://cadastre.data.gouv.fr/bundler/cadastre-etalab/communes/", id_commune, "/geojson/sections"))
       # }else{
       #   cadastre_geojson <- read_sf(paste0("https://cadastre.data.gouv.fr/bundler/cadastre-etalab/departements/", substr(id_commune, 1, 2), "/geojson/sections"))
       # }
