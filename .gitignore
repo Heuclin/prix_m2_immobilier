@@ -15,3 +15,4 @@ data/DVF/dvf_2016_to_2021.sqlite
 !data/DVF/summary_par_departement/
 !data/DVF/summary_par_departement/data_sum_dep_all.Rdata
 !data/DVF/summary_par_departement/data_sum_dep_annee_all.Rdata
+!*/dvf_sum_dep_annee.Rdata
