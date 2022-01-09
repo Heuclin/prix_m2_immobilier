@@ -21,7 +21,7 @@ library(sf)
 library(stringr)
 library(DBI)
 library(RSQLite)
-runGitHub("Heuclin/prix_m2_immobilier")
+runGitHub("Heuclin/prix_m2_immobilier", ref = "main")
 ```
 
 **Licence :** [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)
