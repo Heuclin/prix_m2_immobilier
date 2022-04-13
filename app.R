@@ -125,6 +125,11 @@ body <- dashboardBody(
                      leafletOutput("map", height = 700)
               ),
               column(width=4,
+                     
+                     selectInput("Type_local", label = "Type de local",
+                                 choices = list("Maison", "Appartement", "Local"),
+                                 selected = "Appartement", multiple = FALSE),
+                     
                      # selectInput("selReg", label = "Région",
                      #             choices = list_reg,
                      #             selected = "R0", multiple = FALSE),
@@ -139,11 +144,8 @@ body <- dashboardBody(
                      
                      selectInput("selCad", label = "Section cadastrale",
                                  choices = list(" - " = "c0"),
-                                 selected = "c0", multiple = TRUE),
+                                 selected = "c0", multiple = FALSE),
                      
-                     selectInput("Type_local", label = "Type de local",
-                                 choices = list("Maison", "Appartement", "Local"),
-                                 selected = "Maison", multiple = FALSE),
                      
                      plotOutput("boxplot")
               )
@@ -175,12 +177,12 @@ body <- dashboardBody(
                  <strong> Codes : </strong> <a href='https://github.com/Heuclin/prix_m2_immobilier'> https://github.com/Heuclin/prix_m2_immobilier </a> <br>
                  <strong> A venir : </strong> <br>
                  <ul>
-                  <li> Inclure les ventes de terrain (nécessite un traîtement particulier) </li>
+                  <li> Inclure les ventes de terrain </li>
                   <li> Créer un prédicteur de valeur foncière </li>
                  </ul>
                  <strong>Date de création : </strong> décembre 2021 <br>
                  <strong>Dernière mise à jour : </strong> 03/01/2022 <br>
-                 <strong>Contact : </strong> <a href='mailto: prix.m2.immobilier.contact@gmail.com'> prix.m2.immobilier.contact@gmail.com </a> <br>
+                 <strong>Contact : </strong> <a href='mailto: benjamin.heuclin@gmail.com'> benjamin.heuclin@gmail.com </a> <br>
                  ")
     )
   )
