@@ -214,6 +214,8 @@ tab_commune <- rbind(tab_commune, Marseille2)
 save(tab_region, tab_dep, tab_commune, file="../data/tab_reg_dep_com.Rdata")
 
 
+load("../data/tab_reg_dep_com.Rdata")
+
 
 
 

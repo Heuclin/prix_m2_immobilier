@@ -14,7 +14,7 @@ rm(list=ls())
 library(tidyr)
 library(dplyr)
 
-library(shiny)
+library(shiny) 
 library(shinydashboard)
 library(leaflet)
 library(sf)
@@ -75,7 +75,7 @@ zoom_max_com <- zoom_min_cad-1
 old_commune <- old_commune_2 <- old_cadastre <- old_id_departement <- NULL
 
 # Header ------------------------------------------------------------------
-header <- dashboardHeader(title = "Prix du metre carré")
+header <- dashboardHeader(title = "Prix du mètre carré")
 
 
 # Sidebar -----------------------------------------------------------------
@@ -112,7 +112,7 @@ body <- dashboardBody(
   tags$head(
     tags$meta(charset="UTF-8"),
     tags$meta(name="autor", content="Benjamin Heuclin"),
-    tags$meta(name="description", content="Résumés statistiques (médiane, moyenne, quantiles ...) du prix de l'immobilier par type de bien (appartments, maisons et locaux commerciaux ou industriels) et par département, commune et section cadastrale calculés à partir des données issues des actes notariés des transactions immobilières intervenues depuis 2016"),
+    tags$meta(name="description", content="Résumés statistiques (médianes, moyennes, quantiles ...) du prix de l'immobilier par type de bien (appartments, maisons et locaux commerciaux ou industriels) et par département, commune et section cadastrale calculés à partir des données issues des actes notariés des transactions immobilières intervenues depuis 2016"),
     tags$meta(name="keywords", content="valeur foncière, prix du mètre carré, prix du m2, immobilier, prix, évolution, Maison, Appartement, Local, Locaux, France, Paris, Lyon, Marseille, Nice, Montpellier, Toulouse, Bordeaux, Lille, Rouen, R shiny, département, commune, section cadastrale"),
     tags$meta(name="viewport", content="width=device-width, initial-scale=1.0"),
     tags$meta(name="github-repo", content = "Heuclin/r4ds")
