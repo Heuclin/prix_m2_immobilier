@@ -10,6 +10,7 @@ README.html
 
 data/france-geojson/
 data/DVF/dvf_2016_to_2021.sqlite
+data/DVF_source/*
 
 !data/tab_reg_dep_com.Rdata
 !data/DVF/summary_par_departement/
