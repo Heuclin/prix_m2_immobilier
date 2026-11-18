@@ -45,6 +45,9 @@ runGitHub("Heuclin/prix_m2_immobilier", ref = "main")
 
 * Liste des codes postaux de France : [https://www.data.gouv.fr/en/datasets/base-officielle-des-codes-postaux/](https://www.data.gouv.fr/en/datasets/base-officielle-des-codes-postaux/)
                   
+* Historique des taux d'intérêt immobilier par trimestre :
+https://www.toutsurmesfinances.com/argent/a/taux-de-credit-immobilier-taux-immobilier-et-historique#Taux_immobilier_evolution_et_perspectives_pour_le_deuxieme_semestre_2023
+
 
 **A venir :**
                  
