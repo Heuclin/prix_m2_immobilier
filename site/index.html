@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prix du m² immobilier</title>
+  <meta name="description" content="Prix du mètre carré des appartements et maisons en France, par département, commune et section cadastrale, calculé à partir des données DVF (Demandes de valeurs foncières).">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Prix du m²</h1>
+      <span class="brand-sub">Ventes immobilières en France · données DVF</span>
+    </div>
+    <div class="search">
+      <label for="search-input" class="sr-only">Rechercher une commune</label>
+      <input id="search-input" type="search" placeholder="Rechercher une commune…" autocomplete="off">
+      <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="map-wrap" aria-label="Carte des prix">
+      <div id="map"></div>
+      <div class="legend" id="legend" aria-label="Légende"></div>
+      <div class="map-hint" id="map-hint">Cliquez sur un département pour voir ses communes</div>
+    </section>
+
+    <aside class="panel">
+      <div class="filters" role="group" aria-label="Filtres">
+        <div class="segmented" role="radiogroup" aria-label="Type de bien">
+          <button type="button" role="radio" data-type="A" aria-checked="true">Appartements</button>
+          <button type="button" role="radio" data-type="M" aria-checked="false">Maisons</button>
+        </div>
+        <label class="select">
+          <span>Période</span>
+          <select id="periode"></select>
+        </label>
+      </div>
+
+      <nav class="crumbs" id="crumbs" aria-label="Niveau géographique"></nav>
+
+      <div class="zone">
+        <h2 id="zone-nom">France</h2>
+        <div class="kpis">
+          <div class="kpi kpi-main">
+            <span class="kpi-label">Prix médian</span>
+            <span class="kpi-value" id="kpi-med">–</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">La moitié des ventes entre</span>
+            <span class="kpi-value small" id="kpi-iq">–</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Nombre de ventes</span>
+            <span class="kpi-value small" id="kpi-n">–</span>
+          </div>
+        </div>
+        <p class="kpi-note" id="kpi-note"></p>
+      </div>
+
+      <div class="chart-card">
+        <h3 id="chart-title">Évolution du prix médian au m²</h3>
+        <div id="chart" class="chart"></div>
+        <details class="table-view">
+          <summary>Voir les données</summary>
+          <div id="table"></div>
+        </details>
+      </div>
+
+      <footer class="about">
+        <p>Source : <a href="https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres-geolocalisees" target="_blank" rel="noopener">DVF géolocalisées</a> (DGFiP, Etalab), ventes de 2014 à <span id="fin-donnees">2026</span>. Ventes d'un seul appartement ou d'une seule maison, hors ventes en l'état futur d'achèvement. Alsace, Moselle et Mayotte ne sont pas couverts par DVF.</p>
+        <p>Les statistiques ne sont affichées qu'à partir de 5 ventes ; aucune vente individuelle n'est publiée. Aucune information sur l'état ou la qualité des biens n'est disponible.</p>
+        <p>Contours : <a href="https://geoservices.ign.fr/adminexpress" target="_blank" rel="noopener">IGN Admin Express</a>, <a href="https://cadastre.data.gouv.fr" target="_blank" rel="noopener">cadastre.data.gouv.fr</a> (Licence Ouverte 2.0) · Fond de carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap.</p>
+        <p>Statistiques sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" target="_blank" rel="noopener">Licence Ouverte 2.0</a>, dans le respect des conditions DVF (pas de réidentification des personnes, pas d'indexation des données par les moteurs de recherche). <a href="https://github.com/Heuclin/prix_m2_immobilier" target="_blank" rel="noopener">Code source</a> sous licence AGPL-3.0 · Benjamin Heuclin</p>
+      </footer>
+    </aside>
+  </main>
+
+  <div id="tooltip" class="tooltip" hidden></div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,59 +1,69 @@
-
-
-
 # Prix du mètre carré immobilier en France
 
 Benjamin Heuclin
 
-Application R shiny fournissant des résumés statistiques (médianes, moyennes, quantiles ...) du prix de l'immobilier par type de bien (appartements, maisons et locaux commerciaux ou industriels) et par département, commune et section cadastrale. Ces résumés statistiques sont calculés à partir des données issues des actes notariés des transactions immobilières intervenues depuis 2016 sur le territoire métropolitain et les DOM-TOM, à l’exception de l’Alsace, de la Moselle et de Mayotte.
+Statistiques du prix au m² des **appartements** et des **maisons** en France, par
+département, commune (arrondissement pour Paris, Lyon et Marseille) et section cadastrale,
+calculées à partir des actes de vente enregistrés dans les
+[Demandes de valeurs foncières (DVF)](https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres-geolocalisees),
+de 2014 à aujourd'hui. L'Alsace, la Moselle et Mayotte ne sont pas couverts par DVF.
 
-Note importante : aucune information sur la qualité des biens n'est fourni dans les données.
+Note importante : aucune information sur l'état ou la qualité des biens n'est disponible
+dans les données.
 
+> **Refonte en cours (2026)** : l'application R Shiny (`app.R`) est remplacée par un
+> pipeline de données R / DuckDB et un site web statique. Suivi détaillé dans
+> [`journal.md`](journal.md).
 
-**Pour lancer l'application avec `R` :**
-```{r}
-library(tidyr)
-library(dplyr)
-library(shiny)
-library(shinydashboard)
-library(leaflet)
-library(sf)
-library(stringr)
-library(DBI)
-library(RSQLite)
-runGitHub("Heuclin/prix_m2_immobilier", ref = "main")
-```
+## Organisation
 
-**Licence :** [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)
+| Dossier | Contenu |
+|---|---|
+| [`pipeline/`](pipeline/) | Préparation des données (R + DuckDB + Parquet) : import des fichiers DVF, une ligne par vente, nettoyage, statistiques, export du site |
+| [`site/`](site/) | Site web statique (carte MapLibre GL, JavaScript sans dépendance de build) |
+| `data/` | Données sources et intermédiaires (non versionnées) |
+| `app.R`, `Script_R/`, `Prediction/` | Ancienne version (Shiny) et premiers essais de prédiction |
 
+## Mettre à jour les données
 
-**Sources des données :**
-                 
-* Données brutes : Valeurs foncières : [https://www.data.gouv.fr/en/datasets/demandes-de-valeurs-foncieres-geolocalisees/](https://www.data.gouv.fr/en/datasets/demandes-de-valeurs-foncieres-geolocalisees/)
+1. Télécharger le fichier DVF géolocalisées complet (`.csv.gz`) dans `data/DVF_source/`.
+   Garder les anciens fichiers : DVF ne republie que les 5 dernières années.
+2. Lancer depuis la racine du projet :
+   ```sh
+   Rscript pipeline/run_all.R          # données et statistiques (~2 min)
+   Rscript pipeline/05_export_site.R   # données du site (~1 min ; nécessite 7-Zip)
+   ```
+3. Tester le site en local :
+   ```sh
+   python -m http.server 8765 --directory site
+   ```
+   puis ouvrir http://127.0.0.1:8765
 
-* Contours des départements et des communes de France : [https://github.com/gregoiredavid/france-geojson](https://github.com/gregoiredavid/france-geojson)
+Packages R : `DBI`, `duckdb`, `sf`, `rmapshaper`, `arrow` (lecture des Parquet).
 
-* Contours des arrondissements de Paris : [https://www.data.gouv.fr/en/datasets/arrondissements-1/](https://www.data.gouv.fr/en/datasets/arrondissements-1/) 
+## Licences
 
-* Contours des arrondissements de Lyon :  [https://geo.data.gouv.fr/fr/datasets/b086ed56567269ede1a9ea280c5ff25ba28554e5](https://geo.data.gouv.fr/fr/datasets/b086ed56567269ede1a9ea280c5ff25ba28554e5)
+- **Code** : [GNU AGPL-3.0](LICENSE).
+- **Données produites** (statistiques, fichiers de `site/data/`) :
+  [Licence Ouverte 2.0](https://www.etalab.gouv.fr/licence-ouverte-open-licence), voir
+  [`LICENCE-DONNEES.md`](LICENCE-DONNEES.md).
+- **Conditions DVF** applicables à toute réutilisation : pas de réidentification des
+  personnes, pas d'indexation des données par les moteurs de recherche externes.
 
-* Contours des arrondissements de Marseille : [https://public.opendatasoft.com/explore/dataset/arrondissements-millesimes0/information/](https://public.opendatasoft.com/explore/dataset/arrondissements-millesimes0/information/)
+## Sources des données
 
-* Contours des sections cadastrales :  [https://cadastre.data.gouv.fr/datasets/cadastre-etalab](https://cadastre.data.gouv.fr/datasets/cadastre-etalab)
+- Valeurs foncières : [DVF géolocalisées](https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres-geolocalisees) (DGFiP, Etalab), Licence Ouverte 2.0.
+- Contours des communes, arrondissements municipaux et départements : [IGN ADMIN EXPRESS COG CARTO](https://geoservices.ign.fr/adminexpress), Licence Ouverte 2.0.
+- Contours des sections cadastrales : [cadastre.data.gouv.fr](https://cadastre.data.gouv.fr) (DGFiP, Etalab), Licence Ouverte 2.0.
+- Recherche de communes : [API Découpage administratif](https://geo.api.gouv.fr/decoupage-administratif).
+- Fond de carte : [OpenFreeMap](https://openfreemap.org), © OpenMapTiles, données © contributeurs OpenStreetMap.
 
-* Liste des départements de France : [https://www.data.gouv.fr/en/datasets/departements-de-france/](https://www.data.gouv.fr/en/datasets/departements-de-france/)
+## Historique
 
-* Liste des codes postaux de France : [https://www.data.gouv.fr/en/datasets/base-officielle-des-codes-postaux/](https://www.data.gouv.fr/en/datasets/base-officielle-des-codes-postaux/)
-                  
+- **Décembre 2021** : création de l'application Shiny (données 2016 → 2021).
+- **Novembre 2023** : ajout des années 2014-2015 et 2022 → mi-2023, essais de prédiction.
+- **Novembre 2026** : nouveau pipeline DuckDB, données 2014 → juin 2026, prototype de
+  site statique, changement de licence (AGPL-3.0 pour le code, Licence Ouverte 2.0 pour
+  les données).
 
-**A venir :**
-                 
-* Inclure les ventes de terrain (nécessite un traîtement particulier) 
-* Créer un prédicteur de valeur foncière 
-                 
-**Date de création :**  décembre 2021 
-
-**Dernière mise à jour :**  03/01/2022
-
-**Contact :**  <a href='mailto: prix.m2.immobilier.contact@gmail.com'> prix.m2.immobilier.contact@gmail.com 
-                
+**Contact** : <a href='mailto:prix.m2.immobilier.contact@gmail.com'>prix.m2.immobilier.contact@gmail.com</a>

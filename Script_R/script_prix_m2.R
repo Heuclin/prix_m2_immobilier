@@ -108,11 +108,23 @@ dvf_2022 <- as_tibble(dvf_2022) %>% as_tibble() %>%
   mutate(type_local=replace(type_local, type_local =="Local industriel. commercial ou assimilé", "Local")) %>%
   filter(!is.na(valeur_fonciere))
 class(dvf_2022)
+
+dvf_2023 <- fread("data/DVF_source/data_immo_2023.csv", sep=",", header=TRUE, encoding = "UTF-8")
+dvf_2023 <- as_tibble(dvf_2023) %>% as_tibble() %>%
+  select(id_mutation, date_mutation, nature_mutation, valeur_fonciere, code_postal,
+         code_commune, code_departement, id_parcelle, type_local, surface_reelle_bati,
+         nombre_pieces_principales, nature_culture, surface_terrain, longitude, latitude) %>%
+  mutate(annee = year(date_mutation), mois = month(date_mutation)) %>% #select(-date_mutation) %>%
+  mutate(section_cadastrale = substr(id_parcelle, 1, 10)) %>% select(-id_parcelle) %>% 
+  mutate(type_local=replace(type_local, type_local =="Local industriel. commercial ou assimilé", "Local")) %>%
+  filter(!is.na(valeur_fonciere))
+class(dvf_2023)
+
 # 
 # 
 dvf <- bind_rows(
   dvf_2014, dvf_2015, dvf_2016, dvf_2017, dvf_2018, dvf_2019, dvf_2020, 
-  dvf_2021, dvf_2022)
+  dvf_2021, dvf_2022, dvf_2023)
 
 dvf%>% tally()
 
@@ -147,14 +159,18 @@ table(dvf$annee)
 
 # on sauvegarde toutes les données dans une base
 db <- dbConnect(SQLite(), dbname = "data/DVF_source/db_dvf_full_data.sqlite")
-# dbWriteTable(db, "dvf", dvf, overwrite =TRUE)
+dbListTables(db)
+dbRemoveTable(db, "dvf")
+
+dbWriteTable(db, "dvf", dvf, overwrite =TRUE)
 # dbAppendTable(db, "dvf", dvf)
 
 dbListTables(db)
-
 dbDisconnect(db)
 
 nrow(dvf)
+
+
 
 
 
@@ -199,7 +215,8 @@ for(dep in num_dep){
   
   # nettoyage du jeux de donnees
   data <- data_all %>% filter(code_departement == dep2) %>% as_tibble()
-  data <- data_all %>% as_tibble()
+  dim(data)
+  # data <- data_all %>% as_tibble()
   
   # on creer une variable qui donne le nombre de dependance de la mutation
   # puis on supprime les lignes correspondants à ces mutations
@@ -212,11 +229,15 @@ for(dep in num_dep){
     mutate(dependance = sum(type_local == "Dépendance")) %>%
     mutate(apt = any(type_local == "Appartement")) %>%
     mutate(maison = any(type_local == "Maison")) %>%
-    mutate(terre = any(type_local == "Terre")) %>%
+    mutate(terre = any(type_local == "")) %>%
     mutate(local = any(type_local == "Local")) %>%
     ungroup() %>%
     filter(type_local != "Dépendance") %>%
     mutate(type_mut = paste0(1*apt, 1*maison, 1*terre, 1*local))
+  
+  data %>% select(id_mutation, type_mut) %>% distinct() %>%
+    group_by(type_mut) %>% summarise(n=n()) %>% ungroup %>% 
+    mutate(prop = round(n / sum(n)*100)) %>% arrange(n)
   
   # traittement des
   # appartement (1000) 27%
@@ -225,50 +246,55 @@ for(dep in num_dep){
   # local (0001) 3%
   # maison+terre (0110) 12%
   
-  #  total 27+19+3+12 = 61%
-  data %>% tally
-  data %>%  filter(type_mut %in% c("1100")) %>% tally
   
-  table(data$type_mut)/332485*100
-  
-  data2 <- data %>% filter(type_mut %in% c("1000", "0100", "0001", "0110"))
+  # On ne garde que les mutations comportants uniquement 1 appartement ou 1 maison
+  data2 = data %>% group_by(id_mutation) %>% mutate(n=n()) %>% filter(n==1) %>%
+    ungroup() %>% filter(type_local %in% c("Appartement", "Maison")) %>%
+    filter(nature_mutation == "Vente")
+  # data2 <- data %>% filter(type_mut %in% c("1000", "0100", "0001", "0110"))
   # data2 %>% tally
   
-  data2 <- data2 %>% group_by(id_mutation, nature_mutation, valeur_fonciere,
-                              code_commune, code_departement,
-                              section_cadastrale, type_local, annee,
-                              dependance, apt, maison, terre, local, type_mut) %>%
-    summarise(surface_reelle_bati = sum(surface_reelle_bati),
-              surface_terrain = sum(surface_terrain),
-              nombre_pieces_principales = sum(nombre_pieces_principales),
-              longitude = mean(longitude),
-              latitude = mean(latitude)) %>%
-    ungroup() %>%
-    mutate(nature_culture = "Sols") %>%
-    group_by(id_mutation, section_cadastrale) %>%
-    mutate(surface_terrain = sum(surface_terrain)) %>%
-    ungroup() %>%
-    filter(type_local != "Terre")
+  data2 %>% filter(is.na(surface_reelle_bati)) %>% tally()
+  
+  data2 = data2 %>% filter(!is.na(surface_reelle_bati),
+                           !is.na(valeur_fonciere))
+  
+  nrow(data2)
+  nrow(data2)/length(unique(data$id_mutation)) # on a 61% des données
+  
+  
+  # data2 <- data2 %>% group_by(id_mutation, nature_mutation, valeur_fonciere,
+  #                             code_commune, code_departement,
+  #                             section_cadastrale, type_local, annee,
+  #                             dependance, apt, maison, terre, local, type_mut) %>%
+  #   summarise(surface_reelle_bati = sum(surface_reelle_bati),
+  #             surface_terrain = sum(surface_terrain),
+  #             nombre_pieces_principales = sum(nombre_pieces_principales),
+  #             longitude = mean(longitude),
+  #             latitude = mean(latitude)) %>%
+  #   ungroup() %>%
+  #   mutate(nature_culture = "Sols") %>%
+  #   group_by(id_mutation, section_cadastrale) %>%
+  #   mutate(surface_terrain = sum(surface_terrain)) %>%
+  #   ungroup() %>%
+  #   filter(type_local != "Terre")
   
   # data2 %>% tally
   
-  # toto <- data2 %>% as_tibble()
-  # table(toto$type_local)
-  # table(data2$id_mutation)[table(data2$id_mutation)>1]
-  # tmp <- names(table(data2$id_mutation)[table(data2$id_mutation)>1])
-  #
-  # View(data2[data2$id_mutation %in% tmp, ])
+  # data2 <- data2 %>% group_by(id_mutation) %>%
+  #   filter(!is.na(surface_reelle_bati)) %>%
+  #   mutate(surface_bati_tot = sum(surface_reelle_bati)) %>%
+  #   mutate(VF_vente = valeur_fonciere/surface_bati_tot * surface_reelle_bati) %>%
+  #   mutate(prix_m2 = VF_vente / surface_reelle_bati)
   
-  data2 <- data2 %>% group_by(id_mutation) %>%
-    filter(!is.na(surface_reelle_bati)) %>%
-    mutate(surface_bati_tot = sum(surface_reelle_bati)) %>%
-    mutate(VF_vente = valeur_fonciere/surface_bati_tot * surface_reelle_bati) %>%
-    mutate(prix_m2 = VF_vente / surface_reelle_bati)
+  # data2 %>% group_by(id_mutation) %>% 
+  #   mutate(n=n()) %>%
+  #   filter(n>1) %>%
+  #   tally()
   
-  data2 %>% group_by(id_mutation) %>% 
-    mutate(n=n()) %>%
-    filter(n>1) %>%
-    tally()
+  data2 <- data2 %>% mutate(prix_m2 = valeur_fonciere / surface_reelle_bati)
+  
+  
   
   # élimination des valeurs aberrantes
   colnames(data2)
@@ -277,30 +303,34 @@ for(dep in num_dep){
   length(unique(data2$id_mutation))
   
   data_tmp <- list(Appartement = data2 %>% filter(type_local == "Appartement"),
-                   Maison = data2 %>% filter(type_local == "Maison"),
-                   Local= data2 %>% filter(type_local == "Local"))
+                   Maison = data2 %>% filter(type_local == "Maison"))
+  # Local= data2 %>% filter(type_local == "Local"))
   
   
   
-  for(i in c("Appartement", "Maison", "Local")){
+  # for(i in c("Appartement", "Maison", "Local")){
+  i="Appartement"
+  for(i in c("Appartement", "Maison")){
     # surface bati
     dat <- data_tmp[[i]]
     n <- nrow(dat)
     summary(dat$surface_reelle_bati)
+    quantile(dat$surface_reelle_bati, prob=c(0.025, 0.975))
     
-    sum(dat$surface_reelle_bati < 10) / n
-    sum(dat$surface_reelle_bati > 500) / n
+    sum(dat$surface_reelle_bati < 9) / n*100
+    sum(dat$surface_reelle_bati > 500) / n*100
     
-    dat <- dat %>% filter(surface_reelle_bati > 10) %>%
+    dat <- dat %>% filter(surface_reelle_bati >= 9) %>%
       filter(surface_reelle_bati < 500)
     
     
     # prix de vente
-    summary(dat$VF_vente)
-    q1 <- quantile(dat$VF_vente, 0.01); q1
-    q2 <- quantile(dat$VF_vente, 0.999); q2
+    summary(dat$valeur_fonciere)
+    q1 <- quantile(dat$valeur_fonciere, 0.025); q1
+    q2 <- quantile(dat$valeur_fonciere, 0.999); q2
     
-    dat <- dat %>% filter(VF_vente>q1, VF_vente<q2)
+    dat <- dat %>% filter(valeur_fonciere>q1) # %>%
+    # filter(valeur_fonciere<q2)
     
     # prix du m2
     summary(dat$prix_m2)
@@ -312,8 +342,40 @@ for(dep in num_dep){
     data_tmp[[i]] <- dat
   }
   
-  data2 <- bind_rows(data_tmp[["Appartement"]], data_tmp[["Maison"]], data_tmp[["Local"]])
+  data2 <- bind_rows(data_tmp[["Appartement"]], data_tmp[["Maison"]]) #, data_tmp[["Local"]])
   
+  names(data2)
+  
+  # data pour la prédiction
+  data3 = data2 %>%
+    select(-c(n, type_mut, local, terre, maison, apt, nature_culture, nature_mutation, date_mutation, id_mutation)) %>%
+    mutate_at(vars(surface_terrain), ~replace_na(., 0)) %>%
+    filter(!is.na(latitude), latitude != 0,
+           !is.na(longitude), longitude != 0)
+
+  data3 = data3 %>% group_by(
+    # code_postal
+    section_cadastrale
+                             ) %>%
+    mutate(n=n()) %>% filter(n>5) %>%
+    select(-n) %>% ungroup()
+
+# ajout taux intérêt
+data_taux = read.csv("data/taux.csv", sep=",", dec=".")
+names(data_taux)
+
+data3$trimestre = 1
+data3$trimestre[data3$mois >=4 & data3$mois <=6] = 2
+data3$trimestre[data3$mois >=7 & data3$mois <=9] = 3
+data3$trimestre[data3$mois >=10 & data3$mois <=12] = 4
+table(data3$trimestre)
+
+data3 = data3 %>% left_join(data_taux)
+
+  data3 = data3 %>% drop_na()
+  dim(data3)
+  write.csv(data3, file="data/DVF_source/data_dvf_prediction.csv",
+            row.names = FALSE)
   
   # fit=lm(prix_m2~code_commune*type_local*annee, data=data2)
   # summary(fit)   

@@ -220,6 +220,9 @@ for(id in 1:nrow(my_grid)){
   prepared_dvf$trimestre = as.character(prepared_dvf$trimestre)
   prepared_dvf$mois = as.character(prepared_dvf$mois)
   
+  prepared_dvf = prepared_dvf %>% rename("pres" = "prés") 
+  # %>%
+    # rename("terrains_a_batir" = "terrains a bâtir")
   
   
   
@@ -248,34 +251,33 @@ dbDisconnect(db_all_data)
 
 # création csv ------------------------------------------------------------
 
-
-
-
-
 db_all_data <- dbConnect(SQLite(), dbname = "data/DVF_source/db_dvf_full_data.sqlite")
 set.seed(42)
 dvf_db <- tbl(db_all_data, "dvf_for_pred") %>% 
-  as_tibble() %>% filter(annee %in% c("20220", "2021", "2022")) %>%
-  sample_n(1000000)
+  # filter(annee %in% c("20220", "2021", "2022")) %>% 
+  filter(code_departement == "34") %>%
+  as_tibble() 
+# %>%
+  # sample_n(100000)
 
 dbDisconnect(db_all_data)
+
+# dvf_db = dvf_db %>% rename("pres" = "prés") %>%
+  # rename("terrains_a_batir" = "terrains a bâtir")
+
 
 dvf_db = dvf_db %>% group_by(code_postal) %>%
   mutate(n=n()) %>% filter(n>5) %>%
   select(-n) %>% ungroup()
 
 dim(dvf_db)
-# dvf_db[is.na(dvf_db)] = 0 
 
-
-
-
-
-dim(dvf_db)
 View(head(dvf_db, 100))
 
+dvf_db = dvf_db %>% filter(lon !=0 | lat!=0)
+dim(dvf_db)
 
-write.csv(dvf_db, file="data/DVF_source/data_dvf_sample_1M.csv",
+write.csv(dvf_db, file="data/DVF_source/data_dvf_predict_34.csv",
           row.names = FALSE)
 
 
