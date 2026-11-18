@@ -25,7 +25,8 @@ dbExecute(con, sprintf("
   FROM %1$s WHERE garde AND date_mutation >= DATE '%2$s'", ventes, date_12m))
 
 nmin <- as.integer(param$n_min_affichage)
-stat <- function(expr) sprintf("CASE WHEN count(*) >= %d THEN round(%s) END", nmin, expr)
+nmin_ext <- as.integer(param$n_min_extremes)
+stat <- function(expr, seuil = nmin) sprintf("CASE WHEN count(*) >= %d THEN round(%s) END", seuil, expr)
 
 sql <- sprintf("
 SELECT
@@ -45,9 +46,9 @@ GROUP BY GROUPING SETS (
   (type_local, periode, code_departement, code_commune),
   (type_local, periode, code_departement, code_commune, section_cadastrale)
 )",
-  stat("quantile_cont(prix_m2, 0.05)"), stat("quantile_cont(prix_m2, 0.25)"),
+  stat("quantile_cont(prix_m2, 0.05)", nmin_ext), stat("quantile_cont(prix_m2, 0.25)"),
   stat("median(prix_m2)"), stat("quantile_cont(prix_m2, 0.75)"),
-  stat("quantile_cont(prix_m2, 0.95)"), stat("avg(prix_m2)"), stat("median(surface)"))
+  stat("quantile_cont(prix_m2, 0.95)", nmin_ext), stat("avg(prix_m2)"), stat("median(surface)"))
 
 unlink(dir_agregats, recursive = TRUE)
 dir.create(dir_agregats, recursive = TRUE)

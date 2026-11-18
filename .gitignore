@@ -22,3 +22,4 @@ data/DVF_source/*
 # Sorties du pipeline (régénérables : Rscript pipeline/run_all.R)
 data/parquet/
 logs/
+site/data/

@@ -98,10 +98,13 @@ select_typed <- function(f, src, mois) sprintf("
     nature_mutation,
     TRY_CAST(valeur_fonciere AS DOUBLE) AS valeur_fonciere,
     adresse_numero, adresse_suffixe, adresse_nom_voie, adresse_code_voie,
-    lpad(code_postal, 5, '0')       AS code_postal,
-    lpad(code_commune, 5, '0')      AS code_commune,
+    -- complète les zéros initiaux perdus (attention : lpad() de DuckDB tronque
+    -- les chaînes plus longues, d'où le test de longueur : '971' doit rester '971')
+    CASE WHEN length(code_postal) < 5 THEN lpad(code_postal, 5, '0') ELSE code_postal END AS code_postal,
+    CASE WHEN length(code_commune) < 5 THEN lpad(code_commune, 5, '0') ELSE code_commune END AS code_commune,
     nom_commune,
-    lpad(code_departement, 2, '0')  AS code_departement,
+    CASE WHEN length(code_departement) < 2 THEN lpad(code_departement, 2, '0')
+         ELSE code_departement END AS code_departement,
     ancien_code_commune, ancien_nom_commune,
     id_parcelle, ancien_id_parcelle, numero_volume,
     lot1_numero, TRY_CAST(lot1_surface_carrez AS DOUBLE) AS lot1_surface_carrez,

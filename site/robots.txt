@@ -1,0 +1,5 @@
+# Les pages du site peuvent être indexées, mais pas les fichiers de données
+# (conditions de réutilisation DVF : pas d'indexation des données par les
+# moteurs de recherche externes).
+User-agent: *
+Disallow: /data/

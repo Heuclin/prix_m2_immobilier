@@ -42,7 +42,10 @@ param <- list(
   terrain_max_maison = 20000, # m2 : au-delà, vente plutôt agricole / propriété
   z_robuste_max = 4,      # écart robuste max sur log(prix_m2) (en MAD)
   n_min_groupe_z = 30,    # effectif min du groupe commune x type x annee pour le z
-  n_min_affichage = 5     # en dessous, les quantiles ne sont pas publiés
+  n_min_affichage = 5,    # en dessous, les quantiles ne sont pas publiés
+  n_min_extremes = 20     # en dessous, q05 / q95 ne sont pas publiés : avec peu de
+                          # ventes ils sont quasiment des prix individuels (conditions
+                          # DVF : pas de réidentification)
 )
 
 connect_duckdb <- function(threads = max(1, parallel::detectCores() - 2),
