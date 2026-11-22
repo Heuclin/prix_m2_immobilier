@@ -23,3 +23,6 @@ data/DVF_source/*
 data/parquet/
 logs/
 site/data/
+
+# Résultats des modèles (régénérables, contiennent des données vente par vente)
+modele/resultats/

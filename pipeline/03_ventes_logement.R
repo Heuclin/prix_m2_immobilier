@@ -20,7 +20,7 @@ WITH v AS (
   SELECT
     id_mut, date_mutation, annee, mois, trimestre,
     CASE WHEN mois <= 6 THEN 1 ELSE 2 END AS semestre,
-    code_departement, code_commune, nom_commune, code_postal, section_cadastrale,
+    code_departement, code_commune, nom_commune, code_postal, section_cadastrale, id_parcelle,
     longitude, latitude,
     CASE WHEN nb_apt = 1 THEN 'Appartement' ELSE 'Maison' END AS type_local,
     valeur_fonciere,

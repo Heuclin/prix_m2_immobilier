@@ -6,7 +6,7 @@
   <title>Prix du m² immobilier</title>
   <meta name="description" content="Prix du mètre carré des appartements et maisons en France, par département, commune et section cadastrale, calculé à partir des données DVF (Demandes de valeurs foncières).">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
   <header class="topbar">
@@ -29,8 +29,14 @@
     </section>
 
     <aside class="panel">
+      <div class="tabs" role="tablist" aria-label="Mode">
+        <button type="button" role="tab" id="tab-explorer" aria-selected="true" aria-controls="vue-explorer">Explorer les prix</button>
+        <button type="button" role="tab" id="tab-estimer" aria-selected="false" aria-controls="vue-estimer">Estimer un bien</button>
+      </div>
+
+      <div id="vue-explorer" role="tabpanel" aria-labelledby="tab-explorer" class="vue">
       <div class="filters" role="group" aria-label="Filtres">
-        <div class="segmented" role="radiogroup" aria-label="Type de bien">
+        <div class="segmented" id="type-carte" role="radiogroup" aria-label="Type de bien">
           <button type="button" role="radio" data-type="A" aria-checked="true">Appartements</button>
           <button type="button" role="radio" data-type="M" aria-checked="false">Maisons</button>
         </div>
@@ -38,6 +44,10 @@
           <span>Période</span>
           <select id="periode"></select>
         </label>
+        <div class="segmented" id="couche" role="radiogroup" aria-label="Couleur de la carte">
+          <button type="button" role="radio" data-couche="obs" aria-checked="true" title="Prix médian des ventes réelles">Ventes observées</button>
+          <button type="button" role="radio" data-couche="mod" aria-checked="false" title="Prix estimé par le modèle pour un bien type">Estimation</button>
+        </div>
       </div>
 
       <nav class="crumbs" id="crumbs" aria-label="Niveau géographique"></nav>
@@ -59,6 +69,10 @@
           </div>
         </div>
         <p class="kpi-note" id="kpi-note"></p>
+        <div class="kpi kpi-modele" id="kpi-modele" hidden>
+          <span class="kpi-label" id="kpi-modele-label">Estimation du modèle</span>
+          <span class="kpi-value small" id="kpi-modele-val">–</span>
+        </div>
       </div>
 
       <div class="chart-card">
@@ -69,11 +83,56 @@
           <div id="table"></div>
         </details>
       </div>
+      </div>
+
+      <div id="vue-estimer" role="tabpanel" aria-labelledby="tab-estimer" class="vue" hidden>
+        <form id="estim-form" class="estim-form" novalidate>
+          <div class="champ-form adresse">
+            <label for="adr-input">Adresse du bien</label>
+            <input id="adr-input" type="search" placeholder="Ex. 10 rue de la Loge, Montpellier" autocomplete="off">
+            <ul id="adr-results" class="search-results" role="listbox" hidden></ul>
+            <span class="aide">ou cliquez sur la carte pour placer le bien (le repère se déplace à la souris)</span>
+          </div>
+          <div id="estim-lieu" class="estim-lieu" hidden></div>
+
+          <div class="champ-form">
+            <span class="etiquette">Type de bien</span>
+            <div class="segmented" id="estim-type" role="radiogroup" aria-label="Type de bien">
+              <button type="button" role="radio" data-type="A" aria-checked="true">Appartement</button>
+              <button type="button" role="radio" data-type="M" aria-checked="false">Maison</button>
+            </div>
+          </div>
+          <div class="grille-form">
+            <label class="champ-form">Surface habitable (m²)
+              <input id="estim-surface" type="number" min="9" max="500" step="1" value="60" inputmode="numeric" required>
+            </label>
+            <label class="champ-form">Pièces principales
+              <select id="estim-pieces">
+                <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7 ou plus</option>
+              </select>
+            </label>
+            <label class="champ-form">Dépendances
+              <select id="estim-dep" title="Cave, garage, parking vendus avec le bien">
+                <option value="0">Aucune</option><option value="1">1</option><option value="2">2 ou plus</option>
+              </select>
+            </label>
+            <label class="champ-form" id="champ-terrain" hidden>Terrain (m²)
+              <input id="estim-terrain" type="number" min="0" max="20000" step="10" value="500" inputmode="numeric">
+            </label>
+          </div>
+          <button type="submit" class="bouton" id="estim-go">Estimer</button>
+        </form>
+        <div id="estim-result" class="estim-result" aria-live="polite"></div>
+        <p class="kpi-note">Estimation statistique à partir des ventes passées (DVF), qui ne tient pas compte de l'état du bien, de l'étage, de la vue, de la performance énergétique… Ce n'est pas une expertise. Prototype : disponible pour l'Hérault (34) seulement.</p>
+      </div>
 
       <footer class="about">
         <p>Source : <a href="https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres-geolocalisees" target="_blank" rel="noopener">DVF géolocalisées</a> (DGFiP, Etalab), ventes de 2014 à <span id="fin-donnees">2026</span>. Ventes d'un seul appartement ou d'une seule maison, hors ventes en l'état futur d'achèvement. Alsace, Moselle et Mayotte ne sont pas couverts par DVF.</p>
         <p>Les statistiques ne sont affichées qu'à partir de 5 ventes ; aucune vente individuelle n'est publiée. Aucune information sur l'état ou la qualité des biens n'est disponible.</p>
-        <p>Contours : <a href="https://geoservices.ign.fr/adminexpress" target="_blank" rel="noopener">IGN Admin Express</a>, <a href="https://cadastre.data.gouv.fr" target="_blank" rel="noopener">cadastre.data.gouv.fr</a> (Licence Ouverte 2.0) · Fond de carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap.</p>
+        <p>Estimations : modèle statistique bayésien (INLA) ajusté sur les ventes depuis 2018. Adresses : <a href="https://geoservices.ign.fr/documentation/services/services-geoplateforme/geocodage" target="_blank" rel="noopener">géocodage IGN</a> (Base Adresse Nationale), parcelles : <a href="https://apicarto.ign.fr/api/doc/cadastre" target="_blank" rel="noopener">API Carto IGN</a>.</p>
+        <p>Contours :<a href="https://geoservices.ign.fr/adminexpress" target="_blank" rel="noopener">IGN Admin Express</a>, <a href="https://cadastre.data.gouv.fr" target="_blank" rel="noopener">cadastre.data.gouv.fr</a> (Licence Ouverte 2.0) · Fond de carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap.</p>
         <p>Statistiques sous <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" target="_blank" rel="noopener">Licence Ouverte 2.0</a>, dans le respect des conditions DVF (pas de réidentification des personnes, pas d'indexation des données par les moteurs de recherche). <a href="https://github.com/Heuclin/prix_m2_immobilier" target="_blank" rel="noopener">Code source</a> sous licence AGPL-3.0 · Benjamin Heuclin</p>
       </footer>
     </aside>
@@ -82,6 +141,6 @@
   <div id="tooltip" class="tooltip" hidden></div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

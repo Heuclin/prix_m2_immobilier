@@ -56,6 +56,9 @@ bati AS (
     coalesce(mode(section_cadastrale) FILTER (code_type_local IN (1, 2)),
              mode(section_cadastrale)) AS section_cadastrale,
     count(DISTINCT section_cadastrale) AS n_sections,
+    -- parcelle du logement (pour un appartement : l'immeuble / la copropriété)
+    coalesce(mode(id_parcelle) FILTER (code_type_local IN (1, 2)),
+             mode(id_parcelle)) AS id_parcelle,
     count(DISTINCT id_parcelle) AS n_parcelles,
     coalesce(avg(longitude) FILTER (code_type_local IN (1, 2)), avg(longitude)) AS longitude,
     coalesce(avg(latitude)  FILTER (code_type_local IN (1, 2)), avg(latitude))  AS latitude,

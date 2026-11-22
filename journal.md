@@ -5,6 +5,107 @@ Entrées les plus récentes en haut.
 
 ---
 
+## 2026-11-19 — Prototype « Estimer un bien » et couche « Estimation » (Hérault)
+
+### Décisions
+- Modèle publié : **INLA gaussien, champ statique 2,5 km + section + immeuble**. Il fait jeu
+  égal avec la forêt (R² test 0,728 contre 0,714 pour les appartements) et, étant additif,
+  il se **calcule dans le navigateur** : pas de serveur. La forêt reste une référence.
+- Quarto : pas pour l'application (carte et formulaire = JavaScript). Plus tard, pour les
+  pages de méthodologie.
+
+### Essais complémentaires
+- Forêt + historique de l'immeuble (ventes antérieures de la même parcelle) : 12,4 → 12,2 %
+  (apt), 14,5 → 14,2 % (maisons), mais R² en baisse (0,714 → 0,700). La forêt isolait déjà
+  l'immeuble par ses coordonnées (toutes les ventes d'un immeuble ont les mêmes).
+- INLA avec vraisemblance de Student (appartements) : 12,46 % (contre 12,52 %), R² 0,726,
+  mais **127 min** contre 1,3 min (on perd le raccourci gaussien). Bruit à queues épaisses
+  (3,8 degrés de liberté) mais aucun gain utile → abandonné au profit de la calibration
+  des intervalles ci-dessous.
+
+### Export du modèle (`modele/04_export_modele.R`)
+- Composantes exportées (moyenne, écart-type) : constante, dépendances, courbes surface /
+  pièces / terrain, tendance par semestre, champ spatial aux nœuds du maillage (en WGS84),
+  effets section et immeuble par commune.
+- Deux ajustements par type : sur l'apprentissage (contrôles, calibration) puis sur toutes les
+  ventes (modèle publié, prix au 1er semestre 2026). ~30 min pour l'Hérault.
+- **Contrôle** : la prédiction par addition des composantes redonne INLA sur le test
+  (12,52 % pour les appartements, 14,70 % pour les maisons).
+- **Intervalle** : écart-type ≈ racine de la somme des variances (corrélations ignorées,
+  1,27 fois trop large) × **k calibré sur le test** (0,71 apt, 0,77 maisons) → couverture
+  80,0 %, largeur 53 % (apt) / 66 % (maisons).
+- Sorties en `.geojson` (FeatureCollection vide + membre `modele`) car l'antivirus bloque
+  la création de `.json` : `site/data/modele/34.geojson` (0,4 Mo) et
+  `site/data/modele/34/<commune>.geojson` (340 fichiers, 2,5 Mo).
+
+### Site
+- Onglets « Explorer les prix » / « Estimer un bien ».
+- Estimer : adresse avec autocomplétion (géocodage IGN Géoplateforme, BAN) ou clic sur la
+  carte (repère déplaçable) → parcelle par l'API Carto IGN (sinon la plus proche à ~20 m :
+  le point d'adresse tombe souvent sur la voirie) → effets section et immeuble. Affiche la
+  valeur, le prix au m², la fourchette à 80 % et l'effet section / immeuble en %.
+  Lien direct : `#estimer/lon,lat[/M]`.
+- Couche « Estimation » : prix d'un bien type (appartement 60 m² 3 pièces ; maison 100 m²
+  4 pièces 500 m² de terrain) par commune (moyenne des emplacements des ventes) et par
+  section (calcul dans le navigateur au centre de la section). Encart « Estimation du
+  modèle » dans le panneau, à côté de la médiane observée.
+- Testé (Edge sans interface) : Montpellier centre 228 000 € pour 60 m² (170–305 k€),
+  immeuble avec 62 ventes passées : effet +12 %, fourchette resserrée (181–284 k€) ;
+  hors Hérault : message « pas encore de modèle ».
+
+### À faire
+- Vérification visuelle dans le navigateur (couche « Estimation », formulaire, mobile).
+- Passage à tous les départements (bande de ventes des départements voisins).
+
+---
+
+## 2026-11-18 (suite) — Modèles de prédiction, pilote Hérault (34)
+
+### Protocole
+- Dossier `modele/` : `00_donnees.R` (extraction, Lambert-93 en km, variables),
+  `fonctions.R` (métriques), `01_reference_rf.R`, `02_inla.R` (paramétré),
+  `03_comparaison.R`. Résultats en `.rds` / `.log` dans `modele/resultats/`.
+- Réponse : log(prix/m²). Apprentissage : 01/2018 → 06/2025. **Test prospectif : 12 derniers
+  mois** (07/2025 → 06/2026), jamais vus. Appartements : 85 418 / 11 063 ventes ;
+  maisons : 67 225 / 8 320.
+- Métriques : erreur absolue médiane en % (indicateur principal), part à ±10 % / ±20 %,
+  R² sur le log, biais, couverture et largeur de l'intervalle à 80 %.
+
+### Résultats (test, 12 derniers mois)
+
+| Modèle | Appart. erreur méd. | Maisons erreur méd. | Remarques |
+|---|---|---|---|
+| Médiane locale (section → commune → dép., 24 mois) | 15,4 % | 19,2 % | ce que fait l'app actuelle |
+| Forêt aléatoire de quantiles (ranger) | **12,5 %** | **14,5 %** | intervalles 80 % bien calibrés (82 % / 85 %), ~20 s |
+| INLA, maillage 2,5 km × 17 semestres (47 124 effets) | – | – | arrêté après > 25 min |
+| INLA, maillage 5 km × 17 semestres (15 640 effets) | 16,4 % | – | 14,5 min ; portée 4,8 km, σ champ 0,69, ρ = 0,999 |
+| INLA 5 km × 17 semestres + section iid | 14,1 % | – | 24 min |
+| INLA 5 km, champ **statique** + section | 14,6 % | – | **18 s** |
+| INLA 2,5 km statique + section | 14,4 % | – | 1 min |
+| INLA 1 km statique + section (16 395 nœuds) | 14,1 % | – | 12 min |
+| **INLA 2,5 km statique + section + parcelle (immeuble)** | **12,5 %** | 14,8 % | 1,3 min / 5,3 min ; R² 0,73 (apt) |
+| **Moyenne forêt + INLA (section + parcelle)** | **11,9 %** | **14,3 %** | meilleur résultat |
+
+- **ρ = 0,999** entre semestres : la géographie des prix est quasi figée → un champ spatial
+  **statique** + tendance temporelle RW1 suffit et divise le temps de calcul par ~80.
+- Le maillage fin apporte peu (14,6 → 14,1 %) : la résolution n'est pas le facteur limitant.
+- **Effet immeuble (parcelle cadastrale, iid)** : 91,6 % des appartements vendus sur les
+  12 derniers mois sont dans un immeuble ayant déjà des ventes (27 % pour les maisons).
+  Écart-type de l'effet ≈ 0,21 (log) : c'est l'information la plus utile.
+  `id_parcelle` ajouté aux étapes 02 et 03 du pipeline.
+- Intervalles INLA un peu trop larges (couverture 85-86 % pour 80 % visés).
+
+- Forêt : la localisation porte 75-85 % de l'importance ; erreur plus forte pour les grands
+  appartements (17,5 % > 120 m²) et hors Montpellier (13,5 % contre 10,7 %).
+- INLA à maillage grossier : ne voit pas les écarts de prix à l'échelle du quartier
+  (centre / périphérie, front de mer) → **ajout d'un effet iid par section cadastrale**
+  (variance estimée, pas fixée comme en 2023) ; stratégie `gaussian` pour accélérer.
+- Corrections par rapport au script de 2023 : coordonnées en Lambert-93 (et non en degrés),
+  plus de fuite des données de test dans la réponse, plus d'effet section à précision fixée,
+  surface en RW2 sur log(surface), évaluation prospective.
+
+---
+
 ## 2026-11-18 (suite) — Changement de licences, contours IGN
 
 ### Décisions
@@ -128,7 +229,8 @@ Entrées les plus récentes en haut.
 - [ ] Raccourcis vers l'outre-mer sur la carte.
 - [ ] Site Quarto (méthodologie, modèle, à propos) embarquant la carte ; publication
       GitHub Pages par GitHub Actions.
-- [ ] Commiter `site/` et `05_export_site.R` ; fusionner `pipeline-duckdb` dans `main`.
+- [x] Commiter `site/` et `05_export_site.R` (commit `bb0a78f`, poussé sur `pipeline-duckdb`).
+- [x] Fusionner `pipeline-duckdb` dans `main` (pull request #1, merge `d19e149`).
 - [x] Licences : contours IGN Admin Express (Licence Ouverte) ; code AGPL-3.0, données
       Licence Ouverte 2.0.
 - [x] DVF : `robots.txt` interdisant `/data/` ; q05 / q95 masqués si n < 20 ; conditions
